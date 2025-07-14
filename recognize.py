@@ -1,74 +1,82 @@
+import tkinter as tk
+from tkinter import filedialog, messagebox
+import sqlite3
 import cv2
 import face_recognition
 import pickle
-import sqlite3
-from datetime import datetime
+import os
+import shutil
+from databse import create_tables  
 
-def load_known_faces():
-    conn = sqlite3.connect('employees.db')
-    c = conn.cursor()
-    c.execute("SELECT nom, prenom, cin, encoding FROM employees")
-    rows = c.fetchall()
-    conn.close()
-    known_encodings = []
-    known_cins = []
-    known_names = []
-    for row in rows:
-        nom, prenom, cin, encoding_blob = row
-        encoding = pickle.loads(encoding_blob)
-        known_encodings.append(encoding)
-        known_names.append(f"{nom} {prenom}")
-        known_cins.append(cin)
-    return known_encodings, known_names, known_cins
+create_tables() 
 
-def log_attendance(cin):
-    conn = sqlite3.connect('employees.db')
-    c = conn.cursor()
-    now = datetime.now()
-    date = now.strftime("%Y-%m-%d")
-    time = now.strftime("%H:%M:%S")
-    c.execute('''CREATE TABLE IF NOT EXISTS attendance (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        cin TEXT,
-        date TEXT,
-        time_in TEXT
-    )''')
-    c.execute("INSERT INTO attendance (cin, date, time_in) VALUES (?, ?, ?)", (cin, date, time))
-    conn.commit()
-    conn.close()
 
-def main():
-    known_encodings, known_names, known_cins = load_known_faces()
-    video_capture = cv2.VideoCapture(0)
-    print("✅ Démarrage reconnaissance faciale. Appuyez sur 'q' pour quitter.")
+def insert_employee(nom, prenom, cin, img_path):
+    try:
+        image = face_recognition.load_image_file(img_path)
+        face_encodings = face_recognition.face_encodings(image)
 
-    while True:
-        ret, frame = video_capture.read()
-        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        face_locations = face_recognition.face_locations(rgb_frame)
-        face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
+        if not face_encodings:
+            messagebox.showerror("Erreur", "Aucun visage détecté dans l'image.")
+            return
 
-        for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
-            matches = face_recognition.compare_faces(known_encodings, face_encoding)
-            name = "Inconnu"
+        os.makedirs("photos", exist_ok=True)
+        saved_path = f"photos/{cin}.png"
+        shutil.copy(img_path, saved_path)
 
-            if True in matches:
-                first_match_index = matches.index(True)
-                name = known_names[first_match_index]
-                cin = known_cins[first_match_index]
-                log_attendance(cin)
-            else:
-                name = "Inconnu"
+        encoding_pickle = pickle.dumps(face_encodings[0])
 
-            cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
-            cv2.putText(frame, name, (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 2)
+        conn = sqlite3.connect('employees.db')
+        c = conn.cursor()
+        c.execute("INSERT INTO employees (nom, prenom, cin, encoding, image_path) VALUES (?, ?, ?, ?, ?)",
+                  (nom, prenom, cin, encoding_pickle, saved_path))
+        conn.commit()
+        conn.close()
+        messagebox.showinfo("Succès", "✅ Employé ajouté avec succès.")
 
-        cv2.imshow("Reconnaissance faciale", frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+    except sqlite3.IntegrityError:
+        messagebox.showerror("Erreur", "❌ CIN déjà existant.")
+    except Exception as e:
+        messagebox.showerror("Erreur", str(e))
 
-    video_capture.release()
-    cv2.destroyAllWindows()
+def choose_image():
+    file_path = filedialog.askopenfilename(filetypes=[("Fichiers image", "*.png *.jpg *.jpeg")])
+    image_path_var.set(file_path)
 
-if __name__ == "__main__":
-    main()
+def submit_form():
+    nom = entry_nom.get()
+    prenom = entry_prenom.get()
+    cin = entry_cin.get()
+    img_path = image_path_var.get()
+
+    if not (nom and prenom and cin and img_path):
+        messagebox.showerror("Erreur", "Tous les champs sont obligatoires.")
+        return
+
+    insert_employee(nom, prenom, cin, img_path)
+
+root = tk.Tk()
+root.title("👤 Ajouter un employé")
+root.geometry("500x250")
+root.resizable(False, False)
+
+tk.Label(root, text="Nom:").grid(row=0, column=0, padx=10, pady=10, sticky="e")
+entry_nom = tk.Entry(root, width=30)
+entry_nom.grid(row=0, column=1)
+
+tk.Label(root, text="Prénom:").grid(row=1, column=0, padx=10, pady=10, sticky="e")
+entry_prenom = tk.Entry(root, width=30)
+entry_prenom.grid(row=1, column=1)
+
+tk.Label(root, text="CIN:").grid(row=2, column=0, padx=10, pady=10, sticky="e")
+entry_cin = tk.Entry(root, width=30)
+entry_cin.grid(row=2, column=1)
+
+tk.Label(root, text="Image:").grid(row=3, column=0, padx=10, pady=10, sticky="e")
+image_path_var = tk.StringVar()
+tk.Entry(root, textvariable=image_path_var, width=30).grid(row=3, column=1)
+tk.Button(root, text="Choisir une image", command=choose_image).grid(row=3, column=2, padx=5)
+
+tk.Button(root, text="Ajouter l'employé", command=submit_form, bg="#4CAF50", fg="white").grid(row=4, column=1, pady=20)
+
+root.mainloop()
