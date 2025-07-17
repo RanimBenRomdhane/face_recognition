@@ -6,20 +6,10 @@ import face_recognition
 import pickle
 import os
 import shutil
+from db import create_tables  
 
-def create_db():
-    conn = sqlite3.connect('employees.db')
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS employees (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nom TEXT,
-        prenom TEXT,
-        cin TEXT UNIQUE,
-        encoding BLOB,
-        image_path TEXT
-    )''')
-    conn.commit()
-    conn.close()
+create_tables() 
+
 
 def insert_employee(nom, prenom, cin, img_path):
     try:
@@ -65,7 +55,6 @@ def submit_form():
 
     insert_employee(nom, prenom, cin, img_path)
 
-create_db()
 root = tk.Tk()
 root.title("👤 Ajouter un employé")
 root.geometry("500x250")
