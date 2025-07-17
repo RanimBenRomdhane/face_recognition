@@ -1,100 +1,67 @@
 import cv2
 import face_recognition
-import sqlite3
 import pickle
+import sqlite3
 from datetime import datetime
-import numpy as np
+from db import create_tables  # ✅ import de la fonction de création des tables
 
-# Charger les encodages connus depuis la base de données
-def load_known_encodings():
+def load_known_faces():
     conn = sqlite3.connect('employees.db')
     c = conn.cursor()
-    c.execute('''
-        SELECT employees.cin, employee_photos.encoding
-        FROM employees
-        JOIN employee_photos ON employees.id = employee_photos.employee_id
-    ''')
+    c.execute("SELECT nom, prenom, cin, encoding FROM employees")
     rows = c.fetchall()
     conn.close()
+    known_encodings = []
+    known_cins = []
+    known_names = []
+    for row in rows:
+        nom, prenom, cin, encoding_blob = row
+        encoding = pickle.loads(encoding_blob)
+        known_encodings.append(encoding)
+        known_names.append(f"{nom} {prenom}")
+        known_cins.append(cin)
+    return known_encodings, known_names, known_cins
 
-    encodings = []
-    cins = []
-
-    for cin, encoding_blob in rows:
-        encoding = pickle.loads(encoding_blob)  # Dé-sérialiser avec pickle
-        encodings.append(encoding)
-        cins.append(cin)
-
-    return encodings, cins
-
-# Créer la table attendance si elle n'existe pas
-def create_table():
+def log_attendance(cin):
     conn = sqlite3.connect('employees.db')
     c = conn.cursor()
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS attendance (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            cin TEXT,
-            date TEXT,
-            time_in TEXT
-        )
-    ''')
-    conn.commit()
-    conn.close()
-
-# Enregistrer une nouvelle présence
-def log_attendance(cin):
     now = datetime.now()
     date = now.strftime("%Y-%m-%d")
-    time_in = now.strftime("%H:%M:%S")
-
-    conn = sqlite3.connect('employees.db')
-    c = conn.cursor()
-    c.execute("INSERT INTO attendance (cin, date, time_in) VALUES (?, ?, ?)", (cin, date, time_in))
+    time = now.strftime("%H:%M:%S")
+    
+    # ✅ Suppression de la ligne CREATE TABLE IF NOT EXISTS (car déjà créée dans create_tables.py)
+    c.execute("INSERT INTO attendance (cin, date, time_in) VALUES (?, ?, ?)", (cin, date, time))
     conn.commit()
     conn.close()
-    print(f"Présence enregistrée pour CIN: {cin} à {date} {time_in}")
 
 def main():
-    print("✅ Démarrage reconnaissance faciale. Appuyez sur 'q' pour quitter.")
+    create_tables()  # ✅ Crée les tables si elles n'existent pas
+    known_encodings, known_names, known_cins = load_known_faces()
     video_capture = cv2.VideoCapture(0)
-
-    create_table()
-    known_encodings, known_cins = load_known_encodings()
+    print("✅ Démarrage reconnaissance faciale. Appuyez sur 'q' pour quitter.")
 
     while True:
         ret, frame = video_capture.read()
-        if not ret:
-            break
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        face_locations = face_recognition.face_locations(rgb_frame)
+        face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
 
-        small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
-        rgb_small_frame = small_frame[:, :, ::-1]
-
-        face_locations = face_recognition.face_locations(rgb_small_frame)
-        face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
-
-        for face_encoding, face_location in zip(face_encodings, face_locations):
+        for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
             matches = face_recognition.compare_faces(known_encodings, face_encoding)
             name = "Inconnu"
 
             if True in matches:
-                matchedIdxs = [i for (i, b) in enumerate(matches) if b]
-                counts = {}
-
-                for i in matchedIdxs:
-                    cin = known_cins[i]
-                    counts[cin] = counts.get(cin, 0) + 1
-
-                cin = max(counts, key=counts.get)
-                name = cin
+                first_match_index = matches.index(True)
+                name = known_names[first_match_index]
+                cin = known_cins[first_match_index]
                 log_attendance(cin)
+            else:
+                name = "Inconnu"
 
-            top, right, bottom, left = [v * 4 for v in face_location]
             cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
-            cv2.putText(frame, name, (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 0), 2)
+            cv2.putText(frame, name, (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 2)
 
-        cv2.imshow("Reconnaissance Faciale", frame)
-
+        cv2.imshow("Reconnaissance faciale", frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
