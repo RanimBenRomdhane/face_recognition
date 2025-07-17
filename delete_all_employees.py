@@ -1,11 +1,11 @@
 import sqlite3
 
-conn = sqlite3.connect("attendance.db")
+conn = sqlite3.connect("employees.db")
 c = conn.cursor()
 
-c.execute("DELETE FROM attendance")
+c.execute("DELETE FROM employees")
 
-c.execute("DELETE FROM sqlite_sequence WHERE name='attendance'")
+c.execute("DELETE FROM sqlite_sequence WHERE name='employees'")
 
 conn.commit()
 conn.close()

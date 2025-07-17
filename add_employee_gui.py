@@ -1,82 +1,120 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox
 import sqlite3
-import cv2
-import face_recognition
-import pickle
 import os
 import shutil
-from db import create_tables  
+import pickle
+import face_recognition
+from db import create_tables
 
-create_tables() 
+create_tables()
 
+class AddEmployeeApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("👤 Ajouter un employé avec plusieurs photos")
+        self.root.geometry("600x350")
+        self.root.resizable(False, False)
 
-def insert_employee(nom, prenom, cin, img_path):
-    try:
-        image = face_recognition.load_image_file(img_path)
-        face_encodings = face_recognition.face_encodings(image)
+        tk.Label(root, text="Nom:").grid(row=0, column=0, padx=10, pady=10, sticky="e")
+        self.entry_nom = tk.Entry(root, width=30)
+        self.entry_nom.grid(row=0, column=1)
 
-        if not face_encodings:
-            messagebox.showerror("Erreur", "Aucun visage détecté dans l'image.")
+        tk.Label(root, text="Prénom:").grid(row=1, column=0, padx=10, pady=10, sticky="e")
+        self.entry_prenom = tk.Entry(root, width=30)
+        self.entry_prenom.grid(row=1, column=1)
+
+        tk.Label(root, text="CIN:").grid(row=2, column=0, padx=10, pady=10, sticky="e")
+        self.entry_cin = tk.Entry(root, width=30)
+        self.entry_cin.grid(row=2, column=1)
+
+        self.photos_list = []
+        self.photos_var = tk.StringVar(value=[])
+
+        tk.Label(root, text="Photos:").grid(row=3, column=0, padx=10, pady=10, sticky="ne")
+        self.photos_listbox = tk.Listbox(root, listvariable=self.photos_var, height=6, width=40)
+        self.photos_listbox.grid(row=3, column=1, sticky="w")
+
+        btn_frame = tk.Frame(root)
+        btn_frame.grid(row=3, column=2, padx=5, sticky="n")
+
+        tk.Button(btn_frame, text="Ajouter photos", command=self.add_photos).pack(pady=2)
+        tk.Button(btn_frame, text="Supprimer sélection", command=self.remove_selected).pack(pady=2)
+
+        tk.Button(root, text="Ajouter l'employé", command=self.submit_form, bg="#4CAF50", fg="white").grid(row=4, column=1, pady=20)
+
+    def add_photos(self):
+        files = filedialog.askopenfilenames(filetypes=[("Images", "*.png *.jpg *.jpeg")])
+        if files:
+            self.photos_list.extend(files)
+            self.photos_var.set(self.photos_list)
+
+    def remove_selected(self):
+        selected = list(self.photos_listbox.curselection())
+        if not selected:
+            return
+        for i in reversed(selected):
+            del self.photos_list[i]
+        self.photos_var.set(self.photos_list)
+
+    def submit_form(self):
+        nom = self.entry_nom.get().strip()
+        prenom = self.entry_prenom.get().strip()
+        cin = self.entry_cin.get().strip()
+        photos = self.photos_list
+
+        if not (nom and prenom and cin and photos):
+            messagebox.showerror("Erreur", "Tous les champs et au moins une photo sont obligatoires.")
             return
 
-        os.makedirs("photos", exist_ok=True)
-        saved_path = f"photos/{cin}.png"
-        shutil.copy(img_path, saved_path)
+        try:
+            self.insert_employee_with_photos(nom, prenom, cin, photos)
+        except Exception as e:
+            messagebox.showerror("Erreur", str(e))
 
-        encoding_pickle = pickle.dumps(face_encodings[0])
-
+    def insert_employee_with_photos(self, nom, prenom, cin, list_img_paths):
         conn = sqlite3.connect('employees.db')
         c = conn.cursor()
-        c.execute("INSERT INTO employees (nom, prenom, cin, encoding, image_path) VALUES (?, ?, ?, ?, ?)",
-                  (nom, prenom, cin, encoding_pickle, saved_path))
-        conn.commit()
-        conn.close()
-        messagebox.showinfo("Succès", "✅ Employé ajouté avec succès.")
 
-    except sqlite3.IntegrityError:
-        messagebox.showerror("Erreur", "❌ CIN déjà existant.")
-    except Exception as e:
-        messagebox.showerror("Erreur", str(e))
+        try:
+            c.execute("INSERT INTO employees (nom, prenom, cin) VALUES (?, ?, ?)", (nom, prenom, cin))
+            employee_id = c.lastrowid
 
-def choose_image():
-    file_path = filedialog.askopenfilename(filetypes=[("Fichiers image", "*.png *.jpg *.jpeg")])
-    image_path_var.set(file_path)
+            os.makedirs("photos", exist_ok=True)
 
-def submit_form():
-    nom = entry_nom.get()
-    prenom = entry_prenom.get()
-    cin = entry_cin.get()
-    img_path = image_path_var.get()
+            for idx, img_path in enumerate(list_img_paths):
+                image = face_recognition.load_image_file(img_path)
+                face_encodings = face_recognition.face_encodings(image)
+                if not face_encodings:
+                    raise Exception(f"Aucun visage détecté dans l'image {img_path}")
 
-    if not (nom and prenom and cin and img_path):
-        messagebox.showerror("Erreur", "Tous les champs sont obligatoires.")
-        return
+                encoding_pickle = pickle.dumps(face_encodings[0])
+                saved_path = f"photos/{cin}_{idx}.png"
+                shutil.copy(img_path, saved_path)
 
-    insert_employee(nom, prenom, cin, img_path)
+                c.execute(
+                    "INSERT INTO employee_photos (employee_id, photo_path, encoding) VALUES (?, ?, ?)",
+                    (employee_id, saved_path, encoding_pickle)
+                )
 
-root = tk.Tk()
-root.title("👤 Ajouter un employé")
-root.geometry("500x250")
-root.resizable(False, False)
+            conn.commit()
+            messagebox.showinfo("Succès", "✅ Employé et photos ajoutés avec succès.")
+            self.entry_nom.delete(0, tk.END)
+            self.entry_prenom.delete(0, tk.END)
+            self.entry_cin.delete(0, tk.END)
+            self.photos_list = []
+            self.photos_var.set([])
 
-tk.Label(root, text="Nom:").grid(row=0, column=0, padx=10, pady=10, sticky="e")
-entry_nom = tk.Entry(root, width=30)
-entry_nom.grid(row=0, column=1)
+        except sqlite3.IntegrityError:
+            conn.rollback()
+            messagebox.showerror("Erreur", "❌ CIN déjà existant.")
+        except Exception as e:
+            conn.rollback()
+            raise e
+        finally:
+            conn.close()
 
-tk.Label(root, text="Prénom:").grid(row=1, column=0, padx=10, pady=10, sticky="e")
-entry_prenom = tk.Entry(root, width=30)
-entry_prenom.grid(row=1, column=1)
-
-tk.Label(root, text="CIN:").grid(row=2, column=0, padx=10, pady=10, sticky="e")
-entry_cin = tk.Entry(root, width=30)
-entry_cin.grid(row=2, column=1)
-
-tk.Label(root, text="Image:").grid(row=3, column=0, padx=10, pady=10, sticky="e")
-image_path_var = tk.StringVar()
-tk.Entry(root, textvariable=image_path_var, width=30).grid(row=3, column=1)
-tk.Button(root, text="Choisir une image", command=choose_image).grid(row=3, column=2, padx=5)
-
-tk.Button(root, text="Ajouter l'employé", command=submit_form, bg="#4CAF50", fg="white").grid(row=4, column=1, pady=20)
-
-root.mainloop()
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = AddEmployeeApp(root)
+    root.mainloop()
