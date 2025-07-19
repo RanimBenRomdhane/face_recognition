@@ -1,5 +1,3 @@
-# create_tables.py
-
 import sqlite3
 
 def create_tables():
@@ -12,9 +10,18 @@ def create_tables():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         nom TEXT,
         prenom TEXT,
-        cin TEXT UNIQUE,
+        cin TEXT UNIQUE
+    )
+    ''')
+
+    # Table des photos (plusieurs images par employé)
+    c.execute('''
+    CREATE TABLE IF NOT EXISTS photos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        cin TEXT,
+        image_path TEXT,
         encoding BLOB,
-        image_path TEXT
+        FOREIGN KEY (cin) REFERENCES employees(cin) ON DELETE CASCADE
     )
     ''')
 

@@ -8,18 +8,25 @@ from db import create_tables  # ✅ import de la fonction de création des table
 def load_known_faces():
     conn = sqlite3.connect('employees.db')
     c = conn.cursor()
-    c.execute("SELECT nom, prenom, cin, encoding FROM employees")
+    # Charger tous les encodages et infos associées depuis la table photos + employees
+    c.execute('''
+        SELECT e.nom, e.prenom, p.cin, p.encoding
+        FROM photos p
+        INNER JOIN employees e ON p.cin = e.cin
+    ''')
     rows = c.fetchall()
     conn.close()
+
     known_encodings = []
-    known_cins = []
     known_names = []
-    for row in rows:
-        nom, prenom, cin, encoding_blob = row
+    known_cins = []
+
+    for nom, prenom, cin, encoding_blob in rows:
         encoding = pickle.loads(encoding_blob)
         known_encodings.append(encoding)
         known_names.append(f"{nom} {prenom}")
         known_cins.append(cin)
+
     return known_encodings, known_names, known_cins
 
 def log_attendance(cin):
@@ -28,8 +35,7 @@ def log_attendance(cin):
     now = datetime.now()
     date = now.strftime("%Y-%m-%d")
     time = now.strftime("%H:%M:%S")
-    
-    # ✅ Suppression de la ligne CREATE TABLE IF NOT EXISTS (car déjà créée dans create_tables.py)
+
     c.execute("INSERT INTO attendance (cin, date, time_in) VALUES (?, ?, ?)", (cin, date, time))
     conn.commit()
     conn.close()
