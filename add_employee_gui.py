@@ -8,7 +8,7 @@ import shutil
 
 DB_PATH = 'employees.db'
 
-def insert_employee(nom, prenom, cin, img_paths):
+def insert_employee(nom, prenom, cin, img_paths, clear_form):
     if not img_paths:
         messagebox.showerror("Erreur", "Aucune image sélectionnée.")
         return
@@ -56,116 +56,105 @@ def insert_employee(nom, prenom, cin, img_paths):
     finally:
         conn.close()
 
-def choose_images():
-    file_paths = filedialog.askopenfilenames(filetypes=[("Images", "*.png *.jpg *.jpeg")])
-    if file_paths:
-        image_paths_var.set(";".join(file_paths))
 
-def submit_form():
-    nom = entry_nom.get().strip()
-    prenom = entry_prenom.get().strip()
-    cin = entry_cin.get().strip()
-    img_paths_str = image_paths_var.get().strip()
+def open_add_employee_window(master):
+    window = tk.Toplevel(master)
+    window.title("➕ Ajouter un Employé")
+    window.state("zoomed")
+    window.configure(bg="#f1f3f6")
 
-    if not (nom and prenom and cin and img_paths_str):
-        messagebox.showerror("Erreur", "Tous les champs sont obligatoires.")
-        return
+    tk.Label(
+        window,
+        text="👤 Ajouter un nouvel employé",
+        font=("Segoe UI", 26, "bold"),
+        bg="#f1f3f6",
+        fg="#2c3e50"
+    ).pack(pady=30)
 
-    img_paths = img_paths_str.split(";")
-    insert_employee(nom, prenom, cin, img_paths)
+    form_frame = tk.Frame(window, bg="white", bd=2, relief="groove")
+    form_frame.pack(padx=300, pady=10, fill="both", expand=False)
 
-def clear_form():
-    entry_nom.delete(0, tk.END)
-    entry_prenom.delete(0, tk.END)
-    entry_cin.delete(0, tk.END)
-    image_paths_var.set("")
+    label_font = ("Segoe UI", 13)
+    entry_font = ("Segoe UI", 12)
 
-def return_to_menu():
-    root.destroy()
-    os.system("python main.py")  # assure-toi que c'est bien ce nom
+    def add_form_row(label, entry_widget, row):
+        tk.Label(form_frame, text=label, font=label_font, bg="white").grid(row=row, column=0, sticky="e", pady=12, padx=(20, 10))
+        entry_widget.grid(row=row, column=1, pady=12, padx=(0, 20), sticky="we")
 
-# Interface principale
-root = tk.Tk()
-root.title("➕ Ajouter un Employé")
-root.state("zoomed")
-root.configure(bg="#f1f3f6")
+    form_frame.columnconfigure(1, weight=1)
 
-# Titre
-tk.Label(
-    root,
-    text="👤 Ajouter un nouvel employé",
-    font=("Segoe UI", 26, "bold"),
-    bg="#f1f3f6",
-    fg="#2c3e50"
-).pack(pady=30)
+    entry_nom = tk.Entry(form_frame, font=entry_font)
+    add_form_row("Nom :", entry_nom, 0)
 
-# Conteneur formulaire
-form_frame = tk.Frame(root, bg="white", bd=2, relief="groove")
-form_frame.pack(padx=300, pady=10, fill="both", expand=False)
+    entry_prenom = tk.Entry(form_frame, font=entry_font)
+    add_form_row("Prénom :", entry_prenom, 1)
 
-label_font = ("Segoe UI", 13)
-entry_font = ("Segoe UI", 12)
+    entry_cin = tk.Entry(form_frame, font=entry_font)
+    add_form_row("CIN :", entry_cin, 2)
 
-def add_form_row(label, entry_widget, row):
-    tk.Label(form_frame, text=label, font=label_font, bg="white").grid(row=row, column=0, sticky="e", pady=12, padx=(20, 10))
-    entry_widget.grid(row=row, column=1, pady=12, padx=(0, 20), sticky="we")
+    image_paths_var = tk.StringVar()
+    entry_images = tk.Entry(form_frame, textvariable=image_paths_var, font=entry_font)
+    add_form_row("Images :", entry_images, 3)
 
-form_frame.columnconfigure(1, weight=1)
+    def choose_images():
+        file_paths = filedialog.askopenfilenames(filetypes=[("Images", "*.png *.jpg *.jpeg")])
+        if file_paths:
+            image_paths_var.set(";".join(file_paths))
 
-entry_nom = tk.Entry(form_frame, font=entry_font)
-add_form_row("Nom :", entry_nom, 0)
+    def clear_form():
+        entry_nom.delete(0, tk.END)
+        entry_prenom.delete(0, tk.END)
+        entry_cin.delete(0, tk.END)
+        image_paths_var.set("")
 
-entry_prenom = tk.Entry(form_frame, font=entry_font)
-add_form_row("Prénom :", entry_prenom, 1)
+    def submit_form():
+        nom = entry_nom.get().strip()
+        prenom = entry_prenom.get().strip()
+        cin = entry_cin.get().strip()
+        img_paths_str = image_paths_var.get().strip()
 
-entry_cin = tk.Entry(form_frame, font=entry_font)
-add_form_row("CIN :", entry_cin, 2)
+        if not (nom and prenom and cin and img_paths_str):
+            messagebox.showerror("Erreur", "Tous les champs sont obligatoires.")
+            return
 
-image_paths_var = tk.StringVar()
-entry_images = tk.Entry(form_frame, textvariable=image_paths_var, font=entry_font)
-add_form_row("Images :", entry_images, 3)
+        img_paths = img_paths_str.split(";")
+        insert_employee(nom, prenom, cin, img_paths, clear_form)
 
-tk.Button(
-    form_frame,
-    text="📂 Parcourir",
-    command=choose_images,
-    font=("Segoe UI", 11),
-    bg="#007bff",
-    fg="white",
-    relief="flat",
-    padx=12,
-    pady=6,
-    cursor="hand2"
-).grid(row=3, column=2, padx=10)
+    tk.Button(
+        form_frame,
+        text="📂 Parcourir",
+        command=choose_images,
+        font=("Segoe UI", 11),
+        bg="#007bff",
+        fg="white",
+        relief="flat",
+        padx=12,
+        pady=6,
+        cursor="hand2"
+    ).grid(row=3, column=2, padx=10)
 
-# Bouton ajouter
-btn_submit = tk.Button(
-    root,
-    text="✅ Enregistrer l'employé",
-    command=submit_form,
-    font=("Segoe UI", 14, "bold"),
-    bg="#28a745",
-    fg="white",
-    relief="flat",
-    padx=20,
-    pady=10,
-    cursor="hand2"
-)
-btn_submit.pack(pady=30)
+    tk.Button(
+        window,
+        text="✅ Enregistrer l'employé",
+        command=submit_form,
+        font=("Segoe UI", 14, "bold"),
+        bg="#28a745",
+        fg="white",
+        relief="flat",
+        padx=20,
+        pady=10,
+        cursor="hand2"
+    ).pack(pady=30)
 
-# Bouton retour
-btn_return = tk.Button(
-    root,
-    text="↩ Retour au menu",
-    command=return_to_menu,
-    font=("Segoe UI", 12),
-    bg="#6c757d",
-    fg="white",
-    relief="flat",
-    padx=20,
-    pady=8,
-    cursor="hand2"
-)
-btn_return.pack(pady=10)
-
-root.mainloop()
+    tk.Button(
+        window,
+        text="↩ Retour au menu",
+        command=window.destroy,
+        font=("Segoe UI", 12),
+        bg="#6c757d",
+        fg="white",
+        relief="flat",
+        padx=20,
+        pady=8,
+        cursor="hand2"
+    ).pack(pady=10)

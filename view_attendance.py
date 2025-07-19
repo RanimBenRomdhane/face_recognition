@@ -1,82 +1,107 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 import sqlite3
-import subprocess
 
-def load_attendance():
-    try:
-        conn = sqlite3.connect('employees.db')
-        c = conn.cursor()
-        c.execute("SELECT * FROM attendance ORDER BY date DESC, time_in DESC")
-        rows = c.fetchall()
-        conn.close()
+DB_PATH = 'employees.db'
 
-        for row in tree.get_children():
-            tree.delete(row)
+def open_view_attendance_window(master):
+    window = tk.Toplevel(master)
+    window.title("📆 Historique de présence")
+    window.state("zoomed")
+    window.configure(bg="#f1f3f6")
 
-        for row in rows:
-            tree.insert("", "end", values=row)
+    # Titre
+    tk.Label(
+        window,
+        text="📆 Historique des présences",
+        font=("Segoe UI", 26, "bold"),
+        bg="#f1f3f6",
+        fg="#2c3e50"
+    ).pack(pady=30)
 
-    except Exception as e:
-        messagebox.showerror("Erreur", f"Impossible de charger les présences : {str(e)}")
+    # Frame table + scrollbar
+    frame_table = tk.Frame(window, bg="white", bd=2, relief="groove")
+    frame_table.pack(padx=40, pady=10, fill="both", expand=True)
 
-def return_to_menu():
-    root.destroy()  # ferme la fenêtre actuelle
-    try:
-        subprocess.Popen(["python", "main.py"])  # adapte le nom du script menu principal ici
-    except Exception as e:
-        messagebox.showerror("Erreur", f"Impossible de lancer le menu principal.\n{e}")
+    columns = ("ID", "CIN", "Date", "Heure d'entrée")
+    tree = ttk.Treeview(frame_table, columns=columns, show="headings")
 
-root = tk.Tk()
-root.title("🕒 Liste des présences")
+    style = ttk.Style()
+    style.configure("Treeview.Heading", font=("Segoe UI", 11, "bold"))
+    style.configure("Treeview", font=("Segoe UI", 10), rowheight=30)
 
-# Maximiser la fenêtre au lancement (Windows)
-root.state('zoomed')  
+    for col in columns:
+        tree.heading(col, text=col)
+        tree.column(col, anchor="center", width=150 if col == "Heure d'entrée" else 120)
 
-root.configure(bg="#f8f9fa")
-root.resizable(True, True)
+    scrollbar = ttk.Scrollbar(frame_table, orient="vertical", command=tree.yview)
+    tree.configure(yscrollcommand=scrollbar.set)
 
-# Titre principal
-title_frame = tk.Frame(root, bg="#f8f9fa")
-title_frame.pack(pady=10)
+    scrollbar.pack(side='right', fill='y')
+    tree.pack(fill="both", expand=True)
 
-tk.Label(title_frame, text="📆 Historique de présence", 
-         font=("Segoe UI", 20, "bold"), bg="#f8f9fa", fg="#333").pack()
+    def load_attendance():
+        try:
+            with sqlite3.connect(DB_PATH) as conn:
+                c = conn.cursor()
+                c.execute("SELECT * FROM attendance ORDER BY date DESC, time_in DESC")
+                rows = c.fetchall()
 
-# Frame tableau avec bordure
-table_frame = tk.Frame(root, bg="white", bd=2, relief="groove")
-table_frame.pack(padx=20, pady=10, fill="both", expand=True)
+            # Vider avant chargement
+            for row in tree.get_children():
+                tree.delete(row)
 
-columns = ("ID", "CIN", "Date", "Heure d'entrée")
-tree = ttk.Treeview(table_frame, columns=columns, show="headings")
+            for row in rows:
+                tree.insert("", "end", values=row)
 
-style = ttk.Style()
-style.configure("Treeview.Heading", font=("Segoe UI", 11, "bold"))
-style.configure("Treeview", font=("Segoe UI", 10), rowheight=30)
+        except Exception as e:
+            messagebox.showerror("Erreur", f"Impossible de charger les présences : {str(e)}")
 
-for col in columns:
-    tree.heading(col, text=col)
-    tree.column(col, anchor="center", width=150 if col == "Heure d'entrée" else 120)
+    load_attendance()
 
-tree.pack(fill="both", expand=True)
+    # Boutons Rafraîchir et Retour
+    btn_frame = tk.Frame(window, bg="#f1f3f6")
+    btn_frame.pack(pady=20)
 
-# Frame bouton rafraîchir
-button_frame = tk.Frame(root, bg="#f8f9fa")
-button_frame.pack(pady=10)
+    btn_refresh = tk.Button(
+        btn_frame,
+        text="🔄 Rafraîchir les données",
+        command=load_attendance,
+        font=("Segoe UI", 12),
+        bg="#007BFF",
+        fg="white",
+        padx=20,
+        pady=10,
+        relief="flat",
+        cursor="hand2"
+    )
+    btn_refresh.grid(row=0, column=0, padx=10)
 
-tk.Button(button_frame, text="🔄 Rafraîchir les données", command=load_attendance,
-          font=("Segoe UI", 11), bg="#007BFF", fg="white", padx=20, pady=8, bd=0, relief="ridge", cursor="hand2").pack()
+    btn_return = tk.Button(
+        btn_frame,
+        text="↩ Retour au menu",
+        command=window.destroy,
+        font=("Segoe UI", 12),
+        bg="#6c757d",
+        fg="white",
+        padx=20,
+        pady=10,
+        relief="flat",
+        cursor="hand2"
+    )
+    btn_return.grid(row=0, column=1, padx=10)
 
-# Bouton retour au menu en bas, centré
-bottom_frame = tk.Frame(root, bg="#f8f9fa")
-bottom_frame.pack(pady=20)
 
-btn_return = tk.Button(bottom_frame, text="← Retour au menu", command=return_to_menu,
-                       font=("Segoe UI", 11), bg="#6c757d", fg="white", padx=30, pady=10,
-                       bd=0, relief="ridge", cursor="hand2")
-btn_return.pack()
+# --- Exemple d'utilisation autonome ---
+if __name__ == "__main__":
+    root = tk.Tk()
+    root.title("Menu Principal")
+    root.geometry("400x200")
 
-# Chargement initial
-load_attendance()
+    def open_attendance():
+        open_view_attendance_window(root)
 
-root.mainloop()
+    tk.Label(root, text="Menu principal", font=("Segoe UI", 16)).pack(pady=20)
+    tk.Button(root, text="Voir historique des présences", command=open_attendance).pack()
+
+    root.mainloop()

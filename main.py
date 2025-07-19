@@ -3,11 +3,27 @@ from tkinter import messagebox
 import subprocess
 import os
 import sys
+from add_employee_gui import open_add_employee_window 
+from view_attendance import open_view_attendance_window
+from view_employees import open_view_employees_window
+from recognize_camera import open_camera_window
+from config_camera import open_camera_config_window
 
 def open_script(script_name):
+    # Ouvre un autre script python dans un nouveau processus et ferme la fenêtre actuelle
     root.destroy()  # Fermer le menu actuel
     script_path = os.path.join(os.getcwd(), script_name)
-    os.system(f'python "{script_path}"')  # Ouvrir le script suivant
+    os.system(f'python "{script_path}"')
+
+def open_window_or_script(target):
+    if callable(target):
+        # C'est une fonction : on l'appelle directement sans fermer root
+        target()
+    elif isinstance(target, str):
+        # C'est un chemin vers un script
+        open_script(target)
+    else:
+        messagebox.showerror("Erreur", "Commande non reconnue.")
 
 # Initialisation de la fenêtre principale
 root = tk.Tk()
@@ -29,15 +45,15 @@ title.pack(pady=(30, 10))
 
 # Liste des fonctionnalités
 buttons = [
-    ("👁️  Lancer reconnaissance faciale", "recognize_camera.py"),
-    ("➕  Ajouter un employé", "add_employee_gui.py"),
-    ("📋  Voir les employés", "view_employees.py"),
-    ("📆  Consulter les présences", "view_attendance.py"),
-    ("📷  Configurer une caméra IP", "config_camera.py"),
+    ("👁️  Lancer reconnaissance faciale", lambda: open_camera_window(root)),
+    ("➕  Ajouter un employé", lambda: open_add_employee_window(root)),
+    ("📋  Voir les employés", lambda: open_view_employees_window(root)),
+    ("📆  Consulter les présences", lambda: open_view_attendance_window(root)),
+    ("📷  Configurer une caméra IP", lambda: open_camera_config_window(root)),
 ]
 
 # Fonction pour créer les boutons
-def create_button(text, script, color="#3498db"):
+def create_button(text, target, color="#3498db"):
     return tk.Button(
         main_frame,
         text=text,
@@ -48,12 +64,12 @@ def create_button(text, script, color="#3498db"):
         fg="white",
         activebackground="#2980b9",
         relief="flat",
-        command=lambda: open_script(script)
+        command=lambda: open_window_or_script(target)
     )
 
 # Création des boutons de fonctionnalité
-for text, script in buttons:
-    btn = create_button(text, script)
+for text, target in buttons:
+    btn = create_button(text, target)
     btn.pack(pady=10)
 
 # Bouton Quitter

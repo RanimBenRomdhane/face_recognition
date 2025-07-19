@@ -9,7 +9,7 @@ import os
 from datetime import datetime
 from threading import Thread
 
-from db import create_tables  # fonction existante
+from db import create_tables  # ta fonction existante
 
 CONFIG_FILE = "camera_config.json"
 
@@ -56,16 +56,16 @@ def load_camera_config():
         password = config.get("password", "")
         if not ip:
             raise ValueError("Adresse IP non spécifiée dans le fichier de configuration.")
-        # Construire l’URL RTSP
         return f"rtsp://{username}:{password}@{ip}:554/"
 
-def run_recognition(cam_source):
+def run_recognition(cam_source, window, btn_start):
     create_tables()
     known_encodings, known_names, known_cins = load_known_faces()
 
     video_capture = cv2.VideoCapture(cam_source)
     if not video_capture.isOpened():
         messagebox.showerror("Erreur", f"Impossible d’ouvrir la caméra : {cam_source}")
+        btn_start.config(state='normal')
         return
 
     while True:
@@ -96,42 +96,58 @@ def run_recognition(cam_source):
 
     video_capture.release()
     cv2.destroyAllWindows()
+    btn_start.config(state='normal')
 
-def start_recognition():
-    choice = cam_choice.get()
-    if choice == "default":
-        cam_source = 0
-    elif choice == "ip":
-        try:
-            cam_source = load_camera_config()
-        except Exception as e:
-            messagebox.showerror("Erreur", str(e))
+def open_camera_window(master):
+    window = tk.Toplevel(master)
+    window.title("Choix de la caméra")
+    window.geometry("420x220")
+    window.configure(bg="#f2f2f2")
+    window.resizable(False, False)
+
+    tk.Label(window, text="🎥 Sélection de la caméra :", font=("Segoe UI", 13), bg="#f2f2f2").pack(pady=10)
+
+    cam_choice = tk.StringVar(value="default")
+
+    tk.Radiobutton(window, text="Caméra par défaut (PC)", variable=cam_choice, value="default", bg="#f2f2f2",
+                   font=("Segoe UI", 11)).pack(anchor="w", padx=30)
+    tk.Radiobutton(window, text="Caméra IP (via configuration enregistrée)", variable=cam_choice, value="ip", bg="#f2f2f2",
+                   font=("Segoe UI", 11)).pack(anchor="w", padx=30)
+
+    def start_recognition_gui():
+        choice = cam_choice.get()
+        if choice == "default":
+            cam_source = 0
+        elif choice == "ip":
+            try:
+                cam_source = load_camera_config()
+            except Exception as e:
+                messagebox.showerror("Erreur", str(e))
+                return
+        else:
+            messagebox.showerror("Erreur", "Choix de caméra invalide.")
             return
-    else:
-        messagebox.showerror("Erreur", "Choix de caméra invalide.")
-        return
 
-    btn_start.config(state='disabled')
-    Thread(target=run_recognition, args=(cam_source,), daemon=True).start()
+        btn_start.config(state='disabled')
+        Thread(target=run_recognition, args=(cam_source, window, btn_start), daemon=True).start()
 
-# Interface Tkinter
-root = tk.Tk()
-root.title("Choix de la caméra")
-root.geometry("420x220")
-root.configure(bg="#f2f2f2")
-root.resizable(False, False)
+    btn_start = tk.Button(window, text="Démarrer la reconnaissance", command=start_recognition_gui,
+                          bg="#4CAF50", fg="white", font=("Segoe UI", 12), width=30)
+    btn_start.pack(pady=30)
 
-tk.Label(root, text="🎥 Sélection de la caméra :", font=("Segoe UI", 13), bg="#f2f2f2").pack(pady=10)
+    btn_return = tk.Button(window, text="← Retour au menu", command=window.destroy,
+                           font=("Segoe UI", 11), bg="#6c757d", fg="white", padx=30, pady=10,
+                           bd=0, relief="ridge", cursor="hand2")
+    btn_return.pack(pady=5)
 
-cam_choice = tk.StringVar(value="default")
+# Exemple d’appel depuis ton menu principal :
+if __name__ == "__main__":
+    root = tk.Tk()
+    root.title("Menu principal")
+    root.geometry("400x200")
 
-tk.Radiobutton(root, text="Caméra par défaut (PC)", variable=cam_choice, value="default", bg="#f2f2f2",
-               font=("Segoe UI", 11)).pack(anchor="w", padx=30)
-tk.Radiobutton(root, text="Caméra IP (via configuration enregistrée)", variable=cam_choice, value="ip", bg="#f2f2f2",
-               font=("Segoe UI", 11)).pack(anchor="w", padx=30)
+    btn_open_camera = tk.Button(root, text="Ouvrir caméra", command=lambda: open_camera_window(root),
+                               bg="#007BFF", fg="white", font=("Segoe UI", 12), width=20)
+    btn_open_camera.pack(pady=50)
 
-btn_start = tk.Button(root, text="Démarrer la reconnaissance", command=start_recognition,
-                      bg="#4CAF50", fg="white", font=("Segoe UI", 12), width=30)
-btn_start.pack(pady=30)
-
-root.mainloop()
+    root.mainloop()
