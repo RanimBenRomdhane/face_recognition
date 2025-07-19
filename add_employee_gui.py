@@ -90,4 +90,6 @@ tk.Button(root, text="Choisir une image", command=choose_image).grid(row=3, colu
 
 tk.Button(root, text="Ajouter l'employé", command=submit_form, bg="#4CAF50", fg="white").grid(row=4, column=1, pady=20)
 
+
+
 root.mainloop()
