@@ -6,21 +6,18 @@ import pickle
 import os
 import shutil
 
-
+DB_PATH = 'employees.db'
 
 def insert_employee(nom, prenom, cin, img_paths):
     if not img_paths:
         messagebox.showerror("Erreur", "Aucune image sélectionnée.")
         return
 
-    conn = sqlite3.connect('employees.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
 
     try:
-        # Ajouter l'employé
         c.execute("INSERT INTO employees (nom, prenom, cin) VALUES (?, ?, ?)", (nom, prenom, cin))
-
-        # Créer dossier photos/CIN/
         img_dir = os.path.join("photos", cin)
         os.makedirs(img_dir, exist_ok=True)
 
@@ -30,7 +27,7 @@ def insert_employee(nom, prenom, cin, img_paths):
             face_encodings = face_recognition.face_encodings(image)
 
             if not face_encodings:
-                messagebox.showwarning("Attention", f"Aucun visage détecté dans l'image {os.path.basename(img_path)}")
+                messagebox.showwarning("⚠️ Avertissement", f"Aucun visage détecté dans : {os.path.basename(img_path)}")
                 continue
 
             encoding = pickle.dumps(face_encodings[0])
@@ -42,19 +39,20 @@ def insert_employee(nom, prenom, cin, img_paths):
             images_added += 1
 
         if images_added == 0:
-            messagebox.showerror("Erreur", "❌ Aucun visage détecté dans toutes les images.")
             conn.rollback()
+            messagebox.showerror("Erreur", "Aucun visage détecté dans les images sélectionnées.")
             return
 
         conn.commit()
-        messagebox.showinfo("Succès", f"Employé ajouté avec {images_added} photo(s).")
+        messagebox.showinfo("✅ Succès", f"Employé ajouté avec {images_added} photo(s).")
+        clear_form()
 
     except sqlite3.IntegrityError:
         conn.rollback()
-        messagebox.showerror("Erreur", "❌ Le CIN existe déjà.")
+        messagebox.showerror("Erreur", "Le CIN existe déjà dans la base de données.")
     except Exception as e:
         conn.rollback()
-        messagebox.showerror("Erreur", f"Erreur : {str(e)}")
+        messagebox.showerror("Erreur", f"Erreur inattendue : {str(e)}")
     finally:
         conn.close()
 
@@ -76,31 +74,98 @@ def submit_form():
     img_paths = img_paths_str.split(";")
     insert_employee(nom, prenom, cin, img_paths)
 
+def clear_form():
+    entry_nom.delete(0, tk.END)
+    entry_prenom.delete(0, tk.END)
+    entry_cin.delete(0, tk.END)
+    image_paths_var.set("")
 
+def return_to_menu():
+    root.destroy()
+    os.system("python main.py")  # assure-toi que c'est bien ce nom
 
-# Interface Tkinter
+# Interface principale
 root = tk.Tk()
-root.title("👥 Ajouter un employé avec plusieurs photos")
-root.geometry("600x300")
-root.resizable(False, False)
+root.title("➕ Ajouter un Employé")
+root.state("zoomed")
+root.configure(bg="#f1f3f6")
 
-tk.Label(root, text="Nom:").grid(row=0, column=0, padx=10, pady=10, sticky="e")
-entry_nom = tk.Entry(root, width=40)
-entry_nom.grid(row=0, column=1)
+# Titre
+tk.Label(
+    root,
+    text="👤 Ajouter un nouvel employé",
+    font=("Segoe UI", 26, "bold"),
+    bg="#f1f3f6",
+    fg="#2c3e50"
+).pack(pady=30)
 
-tk.Label(root, text="Prénom:").grid(row=1, column=0, padx=10, pady=10, sticky="e")
-entry_prenom = tk.Entry(root, width=40)
-entry_prenom.grid(row=1, column=1)
+# Conteneur formulaire
+form_frame = tk.Frame(root, bg="white", bd=2, relief="groove")
+form_frame.pack(padx=300, pady=10, fill="both", expand=False)
 
-tk.Label(root, text="CIN:").grid(row=2, column=0, padx=10, pady=10, sticky="e")
-entry_cin = tk.Entry(root, width=40)
-entry_cin.grid(row=2, column=1)
+label_font = ("Segoe UI", 13)
+entry_font = ("Segoe UI", 12)
 
-tk.Label(root, text="Images:").grid(row=3, column=0, padx=10, pady=10, sticky="e")
+def add_form_row(label, entry_widget, row):
+    tk.Label(form_frame, text=label, font=label_font, bg="white").grid(row=row, column=0, sticky="e", pady=12, padx=(20, 10))
+    entry_widget.grid(row=row, column=1, pady=12, padx=(0, 20), sticky="we")
+
+form_frame.columnconfigure(1, weight=1)
+
+entry_nom = tk.Entry(form_frame, font=entry_font)
+add_form_row("Nom :", entry_nom, 0)
+
+entry_prenom = tk.Entry(form_frame, font=entry_font)
+add_form_row("Prénom :", entry_prenom, 1)
+
+entry_cin = tk.Entry(form_frame, font=entry_font)
+add_form_row("CIN :", entry_cin, 2)
+
 image_paths_var = tk.StringVar()
-tk.Entry(root, textvariable=image_paths_var, width=40).grid(row=3, column=1)
-tk.Button(root, text="Choisir des images", command=choose_images).grid(row=3, column=2, padx=5)
+entry_images = tk.Entry(form_frame, textvariable=image_paths_var, font=entry_font)
+add_form_row("Images :", entry_images, 3)
 
-tk.Button(root, text="Ajouter l'employé", command=submit_form, bg="#4CAF50", fg="white").grid(row=4, column=1, pady=20)
+tk.Button(
+    form_frame,
+    text="📂 Parcourir",
+    command=choose_images,
+    font=("Segoe UI", 11),
+    bg="#007bff",
+    fg="white",
+    relief="flat",
+    padx=12,
+    pady=6,
+    cursor="hand2"
+).grid(row=3, column=2, padx=10)
+
+# Bouton ajouter
+btn_submit = tk.Button(
+    root,
+    text="✅ Enregistrer l'employé",
+    command=submit_form,
+    font=("Segoe UI", 14, "bold"),
+    bg="#28a745",
+    fg="white",
+    relief="flat",
+    padx=20,
+    pady=10,
+    cursor="hand2"
+)
+btn_submit.pack(pady=30)
+
+# Bouton retour
+btn_return = tk.Button(
+    root,
+    text="↩ Retour au menu",
+    command=return_to_menu,
+    font=("Segoe UI", 12),
+    bg="#6c757d",
+    fg="white",
+    relief="flat",
+    padx=20,
+    pady=8,
+    cursor="hand2"
+)
+btn_return.pack(pady=10)
 
 root.mainloop()

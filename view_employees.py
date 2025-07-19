@@ -6,6 +6,7 @@ import os
 import face_recognition
 import pickle
 from PIL import Image, ImageTk
+import subprocess
 
 DB_PATH = 'employees.db'
 
@@ -77,20 +78,20 @@ def update_employee():
     update_win.title("Modifier l'employé")
     update_win.geometry("700x700")
 
-    tk.Label(update_win, text="Nom").pack()
+    tk.Label(update_win, text="Nom").pack(pady=(10,0))
     entry_nom = tk.Entry(update_win)
     entry_nom.insert(0, nom)
-    entry_nom.pack()
+    entry_nom.pack(pady=(0,10), fill="x", padx=20)
 
-    tk.Label(update_win, text="Prénom").pack()
+    tk.Label(update_win, text="Prénom").pack(pady=(10,0))
     entry_prenom = tk.Entry(update_win)
     entry_prenom.insert(0, prenom)
-    entry_prenom.pack()
+    entry_prenom.pack(pady=(0,10), fill="x", padx=20)
 
-    tk.Label(update_win, text="CIN").pack()
+    tk.Label(update_win, text="CIN").pack(pady=(10,0))
     entry_cin = tk.Entry(update_win)
     entry_cin.insert(0, cin)
-    entry_cin.pack()
+    entry_cin.pack(pady=(0,10), fill="x", padx=20)
 
     photos_selected = []
 
@@ -211,29 +212,79 @@ def update_employee():
 
     tk.Button(update_win, text="💾 Enregistrer", command=save_changes, bg="#2196F3", fg="white").pack(pady=10)
 
-# Interface principale
+def add_employee():
+    try:
+        subprocess.Popen(["python", "add_employee_gui.py"])  # Remplacer par le vrai script
+    except Exception as e:
+        messagebox.showerror("Erreur", f"Impossible de lancer l'ajout d'employé.\n{e}")
+
+def return_to_menu():
+    root.destroy()
+    try:
+        subprocess.Popen(["python", "main.py"])  # adapter le nom du script menu
+    except Exception as e:
+        messagebox.showerror("Erreur", f"Impossible de lancer le menu principal.\n{e}")
+
+# Fenêtre principale
 root = tk.Tk()
 root.title("👥 Liste des employés")
-root.geometry("800x550")
-root.resizable(False, False)
+root.state('zoomed')  # plein écran (Windows)
+root.configure(bg="#f8f9fa")
+root.resizable(True, True)
 
-tk.Label(root, text="Liste des employés enregistrés", font=("Arial", 16, "bold")).pack(pady=10)
+# Titre
+title_frame = tk.Frame(root, bg="#f8f9fa")
+title_frame.pack(pady=10)
+tk.Label(title_frame, text="👥 Liste des employés enregistrés", 
+         font=("Segoe UI", 20, "bold"), bg="#f8f9fa", fg="#333").pack()
+
+# Frame pour Treeview avec bordure
+table_frame = tk.Frame(root, bg="white", bd=2, relief="groove")
+table_frame.pack(padx=20, pady=10, fill="both", expand=True)
 
 columns = ("ID", "Nom", "Prénom", "CIN")
-tree = ttk.Treeview(root, columns=columns, show="headings")
+tree = ttk.Treeview(table_frame, columns=columns, show="headings")
+
+style = ttk.Style()
+style.configure("Treeview.Heading", font=("Segoe UI", 11, "bold"))
+style.configure("Treeview", font=("Segoe UI", 10), rowheight=30)
 
 for col in columns:
     tree.heading(col, text=col)
-    tree.column(col, width=140)
+    tree.column(col, anchor="center", width=140)
 
-tree.pack(expand=True, fill="both", padx=10, pady=10)
+tree.pack(fill="both", expand=True)
 
-frame_btn = tk.Frame(root)
-frame_btn.pack(pady=10)
+# Frame boutons d'action
+button_frame = tk.Frame(root, bg="#f8f9fa")
+button_frame.pack(pady=10)
 
-tk.Button(frame_btn, text="🔄 Rafraîchir", command=load_employees, bg="#4CAF50", fg="white", width=15).grid(row=0, column=0, padx=10)
-tk.Button(frame_btn, text="✏️ Modifier", command=update_employee, bg="#2196F3", fg="white", width=15).grid(row=0, column=1, padx=10)
-tk.Button(frame_btn, text="🗑 Supprimer", command=delete_employee, bg="#f44336", fg="white", width=15).grid(row=0, column=2, padx=10)
+btn_add = tk.Button(button_frame, text="➕ Ajouter", command=add_employee,
+                    bg="#007BFF", fg="white", width=15, font=("Segoe UI", 11), bd=0, relief="ridge", cursor="hand2")
+btn_add.grid(row=0, column=0, padx=10)
 
+btn_update = tk.Button(button_frame, text="✏️ Modifier", command=update_employee,
+                       bg="#2196F3", fg="white", width=15, font=("Segoe UI", 11), bd=0, relief="ridge", cursor="hand2")
+btn_update.grid(row=0, column=1, padx=10)
+
+btn_delete = tk.Button(button_frame, text="🗑 Supprimer", command=delete_employee,
+                       bg="#f44336", fg="white", width=15, font=("Segoe UI", 11), bd=0, relief="ridge", cursor="hand2")
+btn_delete.grid(row=0, column=2, padx=10)
+
+btn_refresh = tk.Button(button_frame, text="🔄 Rafraîchir", command=load_employees,
+                        bg="#4CAF50", fg="white", width=15, font=("Segoe UI", 11), bd=0, relief="ridge", cursor="hand2")
+btn_refresh.grid(row=0, column=3, padx=10)
+
+# Frame bouton retour en bas
+bottom_frame = tk.Frame(root, bg="#f8f9fa")
+bottom_frame.pack(pady=20)
+
+btn_return = tk.Button(bottom_frame, text="← Retour au menu", command=return_to_menu,
+                       font=("Segoe UI", 11), bg="#6c757d", fg="white", padx=30, pady=10,
+                       bd=0, relief="ridge", cursor="hand2")
+btn_return.pack()
+
+# Chargement initial
 load_employees()
+
 root.mainloop()
