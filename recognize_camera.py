@@ -9,7 +9,7 @@ import os
 from datetime import datetime
 from threading import Thread
 
-from db import create_tables  # ta fonction existante
+from db import create_tables  
 
 CONFIG_FILE = "camera_config.json"
 
@@ -140,7 +140,6 @@ def open_camera_window(master):
                            bd=0, relief="ridge", cursor="hand2")
     btn_return.pack(pady=5)
 
-# Exemple d’appel depuis ton menu principal :
 if __name__ == "__main__":
     root = tk.Tk()
     root.title("Menu principal")

@@ -16,19 +16,15 @@ def open_view_employees_window(parent=None):
     window.state('zoomed')
     window.configure(bg="#f8f9fa")
 
-    # Variables globales locales pour le treeview et images
-    # (nécessaires pour fonctions internes)
+
     tree = None
 
-    # --- Création Widgets ---
-
-    # Titre
     title_frame = tk.Frame(window, bg="#f8f9fa")
     title_frame.pack(pady=10)
     tk.Label(title_frame, text="👥 Liste des employés enregistrés",
              font=("Segoe UI", 20, "bold"), bg="#f8f9fa", fg="#333").pack()
 
-    # Tableau + Scrollbar
+
     table_frame = tk.Frame(window, bg="white", bd=2, relief="groove")
     table_frame.pack(padx=20, pady=10, fill="both", expand=True)
 
@@ -49,7 +45,7 @@ def open_view_employees_window(parent=None):
 
     tree.pack(fill="both", expand=True)
 
-    # --- Fonctions locales ---
+
 
     def load_employees():
         try:
@@ -251,7 +247,7 @@ def open_view_employees_window(parent=None):
         except Exception as e:
             messagebox.showerror("Erreur", f"Impossible de lancer le menu principal.\n{e}")
 
-    # --- Boutons ---
+
     button_frame = tk.Frame(window, bg="#f8f9fa")
     button_frame.pack(pady=10)
 
@@ -267,7 +263,7 @@ def open_view_employees_window(parent=None):
     tk.Button(button_frame, text="🔄 Rafraîchir", command=load_employees, bg="#4CAF50", fg="white",
               width=15, font=("Segoe UI", 11), bd=0).grid(row=0, column=3, padx=10)
 
-    # Bouton retour menu
+
     bottom_frame = tk.Frame(window, bg="#f8f9fa")
     bottom_frame.pack(pady=20)
 
@@ -282,7 +278,6 @@ def open_view_employees_window(parent=None):
     return window
 
 
-# --- Exemple d'utilisation dans un menu principal ---
 if __name__ == "__main__":
     root = tk.Tk()
     root.title("Menu Principal")

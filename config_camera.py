@@ -64,7 +64,6 @@ def open_camera_config_window(master):
     load_config()
 
 
-# Exemple d'utilisation autonome:
 if __name__ == "__main__":
     root = tk.Tk()
     root.title("Menu principal")

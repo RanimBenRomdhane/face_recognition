@@ -10,7 +10,6 @@ def open_view_attendance_window(master):
     window.state("zoomed")
     window.configure(bg="#f1f3f6")
 
-    # Titre
     tk.Label(
         window,
         text="📆 Historique des présences",
@@ -19,7 +18,6 @@ def open_view_attendance_window(master):
         fg="#2c3e50"
     ).pack(pady=30)
 
-    # Frame table + scrollbar
     frame_table = tk.Frame(window, bg="white", bd=2, relief="groove")
     frame_table.pack(padx=40, pady=10, fill="both", expand=True)
 
@@ -47,7 +45,6 @@ def open_view_attendance_window(master):
                 c.execute("SELECT * FROM attendance ORDER BY date DESC, time_in DESC")
                 rows = c.fetchall()
 
-            # Vider avant chargement
             for row in tree.get_children():
                 tree.delete(row)
 
@@ -59,7 +56,6 @@ def open_view_attendance_window(master):
 
     load_attendance()
 
-    # Boutons Rafraîchir et Retour
     btn_frame = tk.Frame(window, bg="#f1f3f6")
     btn_frame.pack(pady=20)
 
@@ -92,7 +88,6 @@ def open_view_attendance_window(master):
     btn_return.grid(row=0, column=1, padx=10)
 
 
-# --- Exemple d'utilisation autonome ---
 if __name__ == "__main__":
     root = tk.Tk()
     root.title("Menu Principal")

@@ -148,7 +148,7 @@ def open_add_employee_window(master):
 
     tk.Button(
         window,
-        text="↩ Retour au menu",
+        text="↩ Retour ",
         command=window.destroy,
         font=("Segoe UI", 12),
         bg="#6c757d",
@@ -158,3 +158,9 @@ def open_add_employee_window(master):
         pady=8,
         cursor="hand2"
     ).pack(pady=10)
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    root.withdraw()
+    open_add_employee_window(root)
+    root.mainloop()
