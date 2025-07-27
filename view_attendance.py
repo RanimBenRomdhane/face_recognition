@@ -21,7 +21,7 @@ def open_view_attendance_window(master):
     frame_table = tk.Frame(window, bg="white", bd=2, relief="groove")
     frame_table.pack(padx=40, pady=10, fill="both", expand=True)
 
-    columns = ("ID", "CIN", "Date", "Heure d'entrée")
+    columns = ("ID", "CIN", "Date", "Heure de pointage")
     tree = ttk.Treeview(frame_table, columns=columns, show="headings")
 
     style = ttk.Style()
