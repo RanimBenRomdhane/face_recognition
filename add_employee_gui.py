@@ -5,8 +5,11 @@ import face_recognition
 import pickle
 import os
 import shutil
+import cv2
+import uuid
 
 DB_PATH = 'employees.db'
+TEMP_PHOTO_DIR = "temp_photos"
 
 def insert_employee(nom, prenom, cin, img_paths, clear_form):
     if not img_paths:
@@ -56,6 +59,42 @@ def insert_employee(nom, prenom, cin, img_paths, clear_form):
     finally:
         conn.close()
 
+def take_photos_and_save(callback):
+    os.makedirs(TEMP_PHOTO_DIR, exist_ok=True)
+    cap = cv2.VideoCapture(0)
+
+    if not cap.isOpened():
+        messagebox.showerror("Erreur", "Impossible d'accéder à la webcam.")
+        return
+
+    messagebox.showinfo("Instructions", "Appuyez sur ESPACE pour prendre une photo, ÉCHAP pour terminer.")
+
+    captured_paths = []
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        cv2.imshow("Capture (ESPACE pour photo, ÉCHAP pour terminer)", frame)
+        key = cv2.waitKey(1) & 0xFF
+
+        if key == 27:  # Échap
+            break
+        elif key == 32:  # Espace
+            filename = f"{uuid.uuid4().hex}.jpg"
+            path = os.path.join(TEMP_PHOTO_DIR, filename)
+            cv2.imwrite(path, frame)
+            captured_paths.append(path)
+            print(f"Photo enregistrée : {path}")
+
+    cap.release()
+    cv2.destroyAllWindows()
+
+    if captured_paths:
+        callback(captured_paths)
+    else:
+        messagebox.showinfo("Info", "Aucune photo capturée.")
 
 def open_add_employee_window(master):
     window = tk.Toplevel(master)
@@ -105,6 +144,11 @@ def open_add_employee_window(master):
         if file_paths:
             image_paths_var.set(";".join(file_paths))
 
+    def take_photos():
+        def callback(captured_paths):
+            image_paths_var.set(";".join(captured_paths))
+        take_photos_and_save(callback)
+
     def clear_form():
         entry_nom.delete(0, tk.END)
         entry_prenom.delete(0, tk.END)
@@ -124,6 +168,7 @@ def open_add_employee_window(master):
         img_paths = img_paths_str.split(";")
         insert_employee(nom, prenom, cin, img_paths, clear_form)
 
+    # Bouton Importer
     tk.Button(
         form_frame,
         text="📂 Parcourir",
@@ -135,7 +180,21 @@ def open_add_employee_window(master):
         padx=12,
         pady=6,
         cursor="hand2"
-    ).grid(row=3, column=2, padx=10)
+    ).grid(row=3, column=2, padx=5)
+
+    # Bouton Prendre des photos
+    tk.Button(
+        form_frame,
+        text="📸 Prendre des photos",
+        command=take_photos,
+        font=("Segoe UI", 11),
+        bg="#17a2b8",
+        fg="white",
+        relief="flat",
+        padx=12,
+        pady=6,
+        cursor="hand2"
+    ).grid(row=3, column=3, padx=5)
 
     tk.Button(
         window,
