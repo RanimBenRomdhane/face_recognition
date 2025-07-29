@@ -9,7 +9,7 @@ import os
 from datetime import datetime
 from threading import Thread
 
-from db import create_tables  
+from db import create_tables  # Assure-toi que ce module existe et crée bien les tables nécessaires
 
 CONFIG_FILE = "camera_config.json"
 
@@ -42,8 +42,13 @@ def log_attendance(cin):
     now = datetime.now()
     date = now.strftime("%Y-%m-%d")
     time = now.strftime("%H:%M:%S")
-    c.execute("INSERT INTO attendance (cin, date, time_in) VALUES (?, ?, ?)", (cin, date, time))
-    conn.commit()
+
+    # Vérifier si une entrée pour ce cin et cette date existe déjà pour éviter les doublons
+    c.execute("SELECT * FROM attendance WHERE cin = ? AND date = ?", (cin, date))
+    exists = c.fetchone()
+    if not exists:
+        c.execute("INSERT INTO attendance (cin, date, time_in) VALUES (?, ?, ?)", (cin, date, time))
+        conn.commit()
     conn.close()
 
 def load_camera_config():
@@ -56,10 +61,11 @@ def load_camera_config():
         password = config.get("password", "")
         if not ip:
             raise ValueError("Adresse IP non spécifiée dans le fichier de configuration.")
+        # Attention aux caractères spéciaux dans username/password qui pourraient nécessiter un encodage URL
         return f"rtsp://{username}:{password}@{ip}:554/"
 
 def run_recognition(cam_source, window, btn_start):
-    create_tables()
+    create_tables()  # Assure que les tables sont là avant de lancer la détection
     known_encodings, known_names, known_cins = load_known_faces()
 
     video_capture = cv2.VideoCapture(cam_source)
@@ -139,14 +145,3 @@ def open_camera_window(master):
                            font=("Segoe UI", 11), bg="#6c757d", fg="white", padx=30, pady=10,
                            bd=0, relief="ridge", cursor="hand2")
     btn_return.pack(pady=5)
-
-if __name__ == "__main__":
-    root = tk.Tk()
-    root.title("Menu principal")
-    root.geometry("400x200")
-
-    btn_open_camera = tk.Button(root, text="Ouvrir caméra", command=lambda: open_camera_window(root),
-                               bg="#007BFF", fg="white", font=("Segoe UI", 12), width=20)
-    btn_open_camera.pack(pady=50)
-
-    root.mainloop()

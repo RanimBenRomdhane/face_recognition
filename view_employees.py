@@ -5,8 +5,8 @@ import shutil
 import os
 import face_recognition
 import pickle
-import subprocess
 from PIL import Image, ImageTk
+from add_employee_gui import open_add_employee_window
 
 DB_PATH = 'employees.db'
 
@@ -16,14 +16,22 @@ def open_view_employees_window(parent=None):
     window.state('zoomed')
     window.configure(bg="#f8f9fa")
 
+    if parent:
+        window.transient(parent)
+        window.grab_set()
+        window.focus_set()
 
-    tree = None
+    def on_close():
+        if parent:
+            window.grab_release()
+        window.destroy()
+
+    window.protocol("WM_DELETE_WINDOW", on_close)
 
     title_frame = tk.Frame(window, bg="#f8f9fa")
     title_frame.pack(pady=10)
     tk.Label(title_frame, text="👥 Liste des employés enregistrés",
              font=("Segoe UI", 20, "bold"), bg="#f8f9fa", fg="#333").pack()
-
 
     table_frame = tk.Frame(window, bg="white", bd=2, relief="groove")
     table_frame.pack(padx=20, pady=10, fill="both", expand=True)
@@ -44,8 +52,6 @@ def open_view_employees_window(parent=None):
     scrollbar.pack(side='right', fill='y')
 
     tree.pack(fill="both", expand=True)
-
-
 
     def load_employees():
         try:
@@ -109,6 +115,7 @@ def open_view_employees_window(parent=None):
         update_win.title("Modifier l'employé")
         update_win.geometry("700x700")
         update_win.grab_set()
+        update_win.focus_set()
 
         tk.Label(update_win, text="Nom").pack(pady=(10, 0))
         entry_nom = tk.Entry(update_win)
@@ -128,7 +135,7 @@ def open_view_employees_window(parent=None):
         photos_selected = []
 
         def browse_images():
-            file_paths = filedialog.askopenfilenames(filetypes=[("Images", "*.png;*.jpg;*.jpeg")])
+            file_paths = filedialog.askopenfilenames(filetypes=[("Images", "*.png *.jpg *.jpeg")])
             if file_paths:
                 photos_selected.clear()
                 photos_selected.extend(file_paths)
@@ -234,19 +241,12 @@ def open_view_employees_window(parent=None):
         tk.Button(update_win, text="💾 Enregistrer", command=save_changes,
                   bg="#007BFF", fg="white", font=("Segoe UI", 11)).pack(pady=20)
 
+        update_win.wait_window()  
     def add_employee():
-        try:
-            subprocess.Popen(["python", "add_employee_gui.py"])
-        except Exception as e:
-            messagebox.showerror("Erreur", f"Impossible de lancer l'ajout d'employé.\n{e}")
+        open_add_employee_window(window)
 
     def return_to_menu():
-        window.destroy()
-        try:
-            subprocess.Popen(["python", "main.py"])
-        except Exception as e:
-            messagebox.showerror("Erreur", f"Impossible de lancer le menu principal.\n{e}")
-
+        on_close()
 
     button_frame = tk.Frame(window, bg="#f8f9fa")
     button_frame.pack(pady=10)
@@ -263,9 +263,8 @@ def open_view_employees_window(parent=None):
     tk.Button(button_frame, text="🔄 Rafraîchir", command=load_employees, bg="#4CAF50", fg="white",
               width=15, font=("Segoe UI", 11), bd=0).grid(row=0, column=3, padx=10)
 
-
     bottom_frame = tk.Frame(window, bg="#f8f9fa")
-    bottom_frame.pack(pady=20)
+    bottom_frame.pack(pady=50)
 
     tk.Button(bottom_frame, text="← Retour au menu", command=return_to_menu,
               font=("Segoe UI", 11), bg="#6c757d", fg="white", padx=30, pady=10).pack()
@@ -276,18 +275,3 @@ def open_view_employees_window(parent=None):
         window.mainloop()
 
     return window
-
-
-if __name__ == "__main__":
-    root = tk.Tk()
-    root.title("Menu Principal")
-    root.geometry("400x200")
-
-    tk.Label(root, text="Menu principal", font=("Segoe UI", 16)).pack(pady=20)
-
-    def open_employees():
-        open_view_employees_window(root)
-
-    tk.Button(root, text="Ouvrir liste des employés", command=open_employees).pack()
-
-    root.mainloop()

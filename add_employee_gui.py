@@ -63,6 +63,10 @@ def open_add_employee_window(master):
     window.state("zoomed")
     window.configure(bg="#f1f3f6")
 
+    window.grab_set()
+    window.focus_set()
+    window.transient(master)
+
     tk.Label(
         window,
         text="👤 Ajouter un nouvel employé",
@@ -158,9 +162,3 @@ def open_add_employee_window(master):
         pady=8,
         cursor="hand2"
     ).pack(pady=10)
-
-if __name__ == "__main__":
-    root = tk.Tk()
-    root.withdraw()
-    open_add_employee_window(root)
-    root.mainloop()

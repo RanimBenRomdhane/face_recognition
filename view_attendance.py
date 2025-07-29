@@ -10,6 +10,17 @@ def open_view_attendance_window(master):
     window.state("zoomed")
     window.configure(bg="#f1f3f6")
 
+    # Modale et focus
+    window.transient(master)
+    window.grab_set()
+    window.focus_set()
+
+    def on_close():
+        window.grab_release()
+        window.destroy()
+
+    window.protocol("WM_DELETE_WINDOW", on_close)
+
     tk.Label(
         window,
         text="📆 Historique des présences",
@@ -29,8 +40,9 @@ def open_view_attendance_window(master):
     style.configure("Treeview", font=("Segoe UI", 10), rowheight=30)
 
     for col in columns:
+        width = 150 if col == "Heure de pointage" else 120
         tree.heading(col, text=col)
-        tree.column(col, anchor="center", width=150 if col == "Heure d'entrée" else 120)
+        tree.column(col, anchor="center", width=width)
 
     scrollbar = ttk.Scrollbar(frame_table, orient="vertical", command=tree.yview)
     tree.configure(yscrollcommand=scrollbar.set)
@@ -57,7 +69,7 @@ def open_view_attendance_window(master):
     load_attendance()
 
     btn_frame = tk.Frame(window, bg="#f1f3f6")
-    btn_frame.pack(pady=20)
+    btn_frame.pack(pady=50)
 
     btn_refresh = tk.Button(
         btn_frame,
@@ -68,7 +80,7 @@ def open_view_attendance_window(master):
         fg="white",
         padx=20,
         pady=10,
-        relief="flat",
+        relief="raised",
         cursor="hand2"
     )
     btn_refresh.grid(row=0, column=0, padx=10)
@@ -76,27 +88,13 @@ def open_view_attendance_window(master):
     btn_return = tk.Button(
         btn_frame,
         text="↩ Retour au menu",
-        command=window.destroy,
+        command=on_close,
         font=("Segoe UI", 12),
         bg="#6c757d",
         fg="white",
         padx=20,
         pady=10,
-        relief="flat",
+        relief="raised",
         cursor="hand2"
     )
     btn_return.grid(row=0, column=1, padx=10)
-
-
-if __name__ == "__main__":
-    root = tk.Tk()
-    root.title("Menu Principal")
-    root.geometry("400x200")
-
-    def open_attendance():
-        open_view_attendance_window(root)
-
-    tk.Label(root, text="Menu principal", font=("Segoe UI", 16)).pack(pady=20)
-    tk.Button(root, text="Voir historique des présences", command=open_attendance).pack()
-
-    root.mainloop()
