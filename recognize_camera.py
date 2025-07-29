@@ -9,12 +9,15 @@ import os
 from datetime import datetime
 from threading import Thread
 
-from db import create_tables  # Assure-toi que ce module existe et crée bien les tables nécessaires
+from db import create_tables  
 
 CONFIG_FILE = "camera_config.json"
+DB_PATH = "employees.db"
+
+last_insert_time = {}
 
 def load_known_faces():
-    conn = sqlite3.connect('employees.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('''
         SELECT e.nom, e.prenom, p.cin, p.encoding
@@ -37,19 +40,25 @@ def load_known_faces():
     return known_encodings, known_names, known_cins
 
 def log_attendance(cin):
-    conn = sqlite3.connect('employees.db')
-    c = conn.cursor()
     now = datetime.now()
     date = now.strftime("%Y-%m-%d")
     time = now.strftime("%H:%M:%S")
 
-    # Vérifier si une entrée pour ce cin et cette date existe déjà pour éviter les doublons
-    c.execute("SELECT * FROM attendance WHERE cin = ? AND date = ?", (cin, date))
-    exists = c.fetchone()
-    if not exists:
+    if cin in last_insert_time:
+        elapsed = (now - last_insert_time[cin]).total_seconds()
+        if elapsed < 1:
+            return  
+
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
         c.execute("INSERT INTO attendance (cin, date, time_in) VALUES (?, ?, ?)", (cin, date, time))
         conn.commit()
-    conn.close()
+        conn.close()
+
+        last_insert_time[cin] = now  
+    except Exception as e:
+        print(f"Erreur lors de l'enregistrement de l'assiduité : {e}")
 
 def load_camera_config():
     if not os.path.exists(CONFIG_FILE):
@@ -61,11 +70,10 @@ def load_camera_config():
         password = config.get("password", "")
         if not ip:
             raise ValueError("Adresse IP non spécifiée dans le fichier de configuration.")
-        # Attention aux caractères spéciaux dans username/password qui pourraient nécessiter un encodage URL
         return f"rtsp://{username}:{password}@{ip}:554/"
 
 def run_recognition(cam_source, window, btn_start):
-    create_tables()  # Assure que les tables sont là avant de lancer la détection
+    create_tables()  
     known_encodings, known_names, known_cins = load_known_faces()
 
     video_capture = cv2.VideoCapture(cam_source)
