@@ -9,7 +9,7 @@ import os
 from datetime import datetime
 from threading import Thread
 
-from db import create_tables  
+from db import create_tables
 
 CONFIG_FILE = "camera_config.json"
 DB_PATH = "employees.db"
@@ -47,7 +47,7 @@ def log_attendance(cin):
     if cin in last_insert_time:
         elapsed = (now - last_insert_time[cin]).total_seconds()
         if elapsed < 1:
-            return  
+            return
 
     try:
         conn = sqlite3.connect(DB_PATH)
@@ -56,7 +56,7 @@ def log_attendance(cin):
         conn.commit()
         conn.close()
 
-        last_insert_time[cin] = now  
+        last_insert_time[cin] = now
     except Exception as e:
         print(f"Erreur lors de l'enregistrement de l'assiduité : {e}")
 
@@ -66,14 +66,24 @@ def load_camera_config():
     with open(CONFIG_FILE, "r") as f:
         config = json.load(f)
         ip = config.get("ip")
+        port = config.get("port", "8080")
+        path = config.get("path", "/video")
         username = config.get("username", "")
         password = config.get("password", "")
+
         if not ip:
-            raise ValueError("Adresse IP non spécifiée dans le fichier de configuration.")
-        return f"rtsp://{username}:{password}@{ip}:554/"
+            raise ValueError("Adresse IP non spécifiée dans la configuration.")
+
+        # Si pas de username/password, on fait juste http://ip:port/path
+        # Sinon, on peut intégrer username:password (mais souvent pas nécessaire pour IP Webcam)
+        if username and password:
+            return f"http://{username}:{password}@{ip}:{port}{path}"
+        else:
+            return f"http://{ip}:{port}{path}"
+
 
 def run_recognition(cam_source, window, btn_start):
-    create_tables()  
+    create_tables()
     known_encodings, known_names, known_cins = load_known_faces()
 
     video_capture = cv2.VideoCapture(cam_source)
@@ -147,9 +157,9 @@ def open_camera_window(master):
 
     btn_start = tk.Button(window, text="Démarrer la reconnaissance", command=start_recognition_gui,
                           bg="#4CAF50", fg="white", font=("Segoe UI", 12), width=30)
-    btn_start.pack(pady=30)
+    btn_start.pack(pady=10)
 
-    btn_return = tk.Button(window, text="← Retour au menu", command=window.destroy,
-                           font=("Segoe UI", 11), bg="#6c757d", fg="white", padx=30, pady=10,
+    btn_return = tk.Button(window, text="← Fermer", command=window.destroy,
+                           font=("Segoe UI", 11), bg="#6c757d", fg="white", padx=30, pady=5,
                            bd=0, relief="ridge", cursor="hand2")
     btn_return.pack(pady=5)

@@ -11,7 +11,7 @@ def open_camera_config_window(master, button=None):
 
     window = tk.Toplevel(master)
     window.title("Configuration Caméra IP")
-    window.geometry("400x300")
+    window.geometry("400x450")
     window.configure(bg="#f0f2f5")
     window.resizable(False, False)
 
@@ -27,23 +27,30 @@ def open_camera_config_window(master, button=None):
 
     window.protocol("WM_DELETE_WINDOW", on_close)
 
-    tk.Label(window, text="Adresse IP :", bg="#f0f2f5", font=("Segoe UI", 12)).pack(pady=5)
-    ip_entry = tk.Entry(window, width=40, font=("Segoe UI", 11))
-    ip_entry.pack(pady=5)
+    # Champs du formulaire
+    labels_and_entries = [
+        ("Adresse IP :", "ip_entry"),
+        ("Port :", "port_entry"),
+        ("Chemin (ex: /video) :", "path_entry"),
+        ("Nom d'utilisateur :", "username_entry"),
+        ("Mot de passe :", "password_entry", "*"),
+    ]
 
-    tk.Label(window, text="Nom d'utilisateur :", bg="#f0f2f5", font=("Segoe UI", 12)).pack(pady=5)
-    username_entry = tk.Entry(window, width=40, font=("Segoe UI", 11))
-    username_entry.pack(pady=5)
+    entries = {}
 
-    tk.Label(window, text="Mot de passe :", bg="#f0f2f5", font=("Segoe UI", 12)).pack(pady=5)
-    password_entry = tk.Entry(window, width=40, show="*", font=("Segoe UI", 11))
-    password_entry.pack(pady=5)
+    for label, var_name, *show in labels_and_entries:
+        tk.Label(window, text=label, bg="#f0f2f5", font=("Segoe UI", 12)).pack(pady=5)
+        entry = tk.Entry(window, width=40, font=("Segoe UI", 11), show=show[0] if show else None)
+        entry.pack(pady=5)
+        entries[var_name] = entry
 
     def save_config():
         config = {
-            "ip": ip_entry.get(),
-            "username": username_entry.get(),
-            "password": password_entry.get()
+            "ip": entries["ip_entry"].get(),
+            "port": entries["port_entry"].get(),
+            "path": entries["path_entry"].get(),
+            "username": entries["username_entry"].get(),
+            "password": entries["password_entry"].get()
         }
 
         if not config["ip"]:
@@ -62,9 +69,11 @@ def open_camera_config_window(master, button=None):
             try:
                 with open(CONFIG_FILE, "r") as f:
                     config = json.load(f)
-                    ip_entry.insert(0, config.get("ip", ""))
-                    username_entry.insert(0, config.get("username", ""))
-                    password_entry.insert(0, config.get("password", ""))
+                    entries["ip_entry"].insert(0, config.get("ip", ""))
+                    entries["port_entry"].insert(0, config.get("port", ""))
+                    entries["path_entry"].insert(0, config.get("path", ""))
+                    entries["username_entry"].insert(0, config.get("username", ""))
+                    entries["password_entry"].insert(0, config.get("password", ""))
             except Exception as e:
                 messagebox.showerror("Erreur", f"Erreur de chargement : {e}")
 
@@ -72,8 +81,8 @@ def open_camera_config_window(master, button=None):
               font=("Segoe UI", 12), bg="#007bff", fg="white", width=20).pack(pady=20)
 
     btn_return = tk.Button(window, text="← Fermer", command=on_close,
-                           font=("Segoe UI", 11), bg="#6c757d", fg="white", padx=20, pady=8,
+                           font=("Segoe UI", 11), bg="#6c757d", fg="white", padx=10, pady=2,
                            bd=0, relief="ridge", cursor="hand2")
-    btn_return.pack(pady=5)
+    btn_return.pack(pady=1)
 
     load_config()

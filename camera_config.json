@@ -1,5 +1,7 @@
 {
-    "ip": "192.168.1.106",
-    "username": "admin",
-    "password": "admin123"
+    "ip": "192.168.1.4",
+    "port": "8080",
+    "path": "/video",
+    "username": "",
+    "password": ""
 }
