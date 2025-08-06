@@ -27,7 +27,6 @@ def open_camera_config_window(master, button=None):
 
     window.protocol("WM_DELETE_WINDOW", on_close)
 
-    # Champs du formulaire
     labels_and_entries = [
         ("Adresse IP :", "ip_entry"),
         ("Port :", "port_entry"),

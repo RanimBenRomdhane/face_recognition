@@ -168,7 +168,6 @@ def open_add_employee_window(master):
         img_paths = img_paths_str.split(";")
         insert_employee(nom, prenom, cin, img_paths, clear_form)
 
-    # Bouton Importer
     tk.Button(
         form_frame,
         text="📂 Parcourir",
@@ -182,7 +181,6 @@ def open_add_employee_window(master):
         cursor="hand2"
     ).grid(row=3, column=2, padx=5)
 
-    # Bouton Prendre des photos
     tk.Button(
         form_frame,
         text="📸 Prendre des photos",

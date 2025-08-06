@@ -10,7 +10,6 @@ def open_view_attendance_window(master):
     window.state("zoomed")
     window.configure(bg="#f1f3f6")
 
-    # Modale et focus
     window.transient(master)
     window.grab_set()
     window.focus_set()

@@ -74,8 +74,7 @@ def load_camera_config():
         if not ip:
             raise ValueError("Adresse IP non spécifiée dans la configuration.")
 
-        # Si pas de username/password, on fait juste http://ip:port/path
-        # Sinon, on peut intégrer username:password (mais souvent pas nécessaire pour IP Webcam)
+
         if username and password:
             return f"http://{username}:{password}@{ip}:{port}{path}"
         else:

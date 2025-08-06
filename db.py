@@ -4,7 +4,6 @@ def create_tables():
     conn = sqlite3.connect("employees.db")
     c = conn.cursor()
 
-    # Table des employés
     c.execute('''
     CREATE TABLE IF NOT EXISTS employees (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -14,7 +13,6 @@ def create_tables():
     )
     ''')
 
-    # Table des photos (plusieurs images par employé)
     c.execute('''
     CREATE TABLE IF NOT EXISTS photos (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -25,7 +23,6 @@ def create_tables():
     )
     ''')
 
-    # Table des présences
     c.execute('''
     CREATE TABLE IF NOT EXISTS attendance (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -39,6 +36,5 @@ def create_tables():
     conn.close()
     print("✅ Tables créées avec succès.")
 
-# Crée les tables si le fichier est lancé directement
 if __name__ == "__main__":
     create_tables()

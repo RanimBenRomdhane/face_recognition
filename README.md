@@ -2,9 +2,7 @@
 
 ## Prérequis
 
-- Python 3.8 ou supérieur
-- Windows / Linux / macOS
-
+- Python 3.10.11
 
 ## Bibliothèques Python nécessaires
 
